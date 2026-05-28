@@ -12,6 +12,7 @@ import {
 const BOARD_ITEMS = window.BINGO_ITEMS ?? [];
 const PRESET_COLORS = ["#ef4444", "#f97316", "#facc15", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#ffffff", "#94a3b8"];
 const DEFAULT_COLOR = "#3b82f6";
+const MAX_PROOF_URL_LENGTH = 500;
 
 const elements = {
   setupWarning: document.querySelector("#setupWarning"),
@@ -136,7 +137,8 @@ function getClaimsForCell(id) {
         participantId: pid,
         name: participant.name || "Unknown",
         color: participant.color || DEFAULT_COLOR,
-        claimedAt: claim?.claimedAt || 0
+        claimedAt: claim?.claimedAt || 0,
+        proofUrl: typeof claim?.proofUrl === "string" ? claim.proofUrl : ""
       };
     })
     .sort((a, b) => Number(a.claimedAt || 0) - Number(b.claimedAt || 0));
@@ -156,6 +158,7 @@ function renderBoard() {
     const id = cellId(index);
     const claims = getClaimsForCell(id);
     const mine = claims.some(claim => claim.participantId === participantId);
+    const myClaim = claims.find(claim => claim.participantId === participantId);
     const points = getPointValue(item);
     const crossLines = claims.map((claim, claimIndex) => {
       const rotation = claimIndex % 2 === 0 ? "-32deg" : "32deg";
@@ -163,23 +166,62 @@ function renderBoard() {
       return `<span class="cross-line" style="--claim-color:${escapeHtml(claim.color)}; --rotation:${rotation}; --offset:${offset}px"></span>`;
     }).join("");
     const claimChips = claims.map(claim => `<span class="claim-chip" style="--claim-color:${escapeHtml(claim.color)}" title="${escapeHtml(claim.name)}">${escapeHtml(claim.name)}</span>`).join("");
+    const proofButtons = claims
+      .filter(claim => claim.proofUrl)
+      .map((claim, claimIndex, proofClaims) => {
+        const label = proofClaims.length === 1 ? "Copy link" : `Copy ${claim.name}`;
+        return `<button class="copy-proof-btn" type="button" data-proof-url="${escapeHtml(claim.proofUrl)}" title="Copy ${escapeHtml(claim.name)}'s image link">${escapeHtml(label)}</button>`;
+      })
+      .join("");
+    const myProofUrl = myClaim?.proofUrl || "";
+    const proofHint = mine ? "Paste image link" : "Claim first or paste link";
 
     return `
-      <button class="tile ${claims.length ? "claimed" : ""} ${mine ? "mine" : ""}" type="button" data-cell-id="${id}" data-index="${index}">
+      <article class="tile ${claims.length ? "claimed" : ""} ${mine ? "mine" : ""}" data-cell-id="${id}" data-index="${index}">
         <span class="tile-points">${points} pts</span>
         <span class="tile-number">${index + 1}</span>
         ${crossLines}
-        <span class="tile-content">
-          <span class="tile-title">${escapeHtml(item.title)}</span>
-          <span class="tile-detail">${escapeHtml(item.detail)}</span>
-        </span>
+        <button class="tile-click-target" type="button" data-cell-id="${id}" aria-label="Toggle ${escapeHtml(item.title)} claim">
+          <span class="tile-content">
+            <span class="tile-title">${escapeHtml(item.title)}</span>
+            <span class="tile-detail">${escapeHtml(item.detail)}</span>
+          </span>
+        </button>
         <span class="claims">${claimChips}</span>
-      </button>
+        <div class="proof-area">
+          <label class="proof-label" for="proof-${id}">Image link</label>
+          <div class="proof-entry">
+            <input id="proof-${id}" class="proof-input" type="url" inputmode="url" placeholder="${proofHint}" value="${escapeHtml(myProofUrl)}" data-proof-input-cell-id="${id}" />
+            <button class="proof-save-btn" type="button" data-proof-cell-id="${id}">Save</button>
+          </div>
+          <div class="proof-links ${proofButtons ? "" : "hidden"}">${proofButtons}</div>
+        </div>
+      </article>
     `;
   }).join("");
 
-  document.querySelectorAll(".tile").forEach(tile => {
-    tile.addEventListener("click", () => toggleClaim(tile.dataset.cellId));
+  document.querySelectorAll(".tile-click-target").forEach(button => {
+    button.addEventListener("click", () => toggleClaim(button.dataset.cellId));
+  });
+
+  document.querySelectorAll(".proof-save-btn").forEach(button => {
+    button.addEventListener("click", () => {
+      const input = button.closest(".proof-entry")?.querySelector(".proof-input");
+      saveProofLink(button.dataset.proofCellId, input?.value || "");
+    });
+  });
+
+  document.querySelectorAll(".proof-input").forEach(input => {
+    input.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        saveProofLink(input.dataset.proofInputCellId, input.value);
+      }
+    });
+  });
+
+  document.querySelectorAll(".copy-proof-btn").forEach(button => {
+    button.addEventListener("click", () => copyProofLink(button.dataset.proofUrl, button));
   });
 }
 
@@ -279,6 +321,82 @@ async function toggleClaim(id) {
   }
 }
 
+async function saveProofLink(id, rawUrl) {
+  if (!database) {
+    alert("Firebase is not configured yet. Finish config.js first.");
+    return;
+  }
+
+  writeProfile({ name: elements.name.value, color: elements.color.value });
+  if (!profile.name) {
+    alert("Type and save your display name first.");
+    elements.name.focus();
+    return;
+  }
+
+  const proofUrl = normalizeProofUrl(rawUrl);
+  if (String(rawUrl || "").trim() && !proofUrl) {
+    alert("Paste a valid http or https image link.");
+    return;
+  }
+
+  await saveProfileToFirebase();
+
+  const myClaimRef = ref(database, `boards/${boardId}/cells/${id}/claims/${participantId}`);
+  const snapshot = await get(myClaimRef);
+  const existingClaim = snapshot.val() || {};
+
+  if (proofUrl) {
+    await set(myClaimRef, {
+      claimedAt: existingClaim.claimedAt || serverTimestamp(),
+      proofUrl
+    });
+    return;
+  }
+
+  if (snapshot.exists()) {
+    await set(myClaimRef, {
+      claimedAt: existingClaim.claimedAt || serverTimestamp()
+    });
+  }
+}
+
+function normalizeProofUrl(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+
+  try {
+    const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    const url = new URL(candidate);
+
+    if (!["http:", "https:"].includes(url.protocol)) return "";
+    const normalized = url.toString();
+    return normalized.length <= MAX_PROOF_URL_LENGTH ? normalized : "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+async function copyProofLink(url, button) {
+  if (!url) return;
+
+  try {
+    await navigator.clipboard.writeText(url);
+    flashButtonText(button, "Copied");
+  } catch (_error) {
+    prompt("Copy this image link:", url);
+  }
+}
+
+function flashButtonText(button, text) {
+  if (!button) return;
+  const original = button.textContent;
+  button.textContent = text;
+  setTimeout(() => {
+    button.textContent = original;
+  }, 1200);
+}
+
 async function clearMyMarks() {
   if (!database) return;
   if (!confirm("Remove all of your marks from this board?")) return;
@@ -291,7 +409,7 @@ async function removeParticipant(pid, participantName) {
   if (!database || !pid) return;
 
   const label = participantName || "this participant";
-  const confirmed = confirm(`Remove ${label} from this board and delete all of their marks?`);
+  const confirmed = confirm(`Remove ${label} from this board and delete all of their marks and proof links?`);
   if (!confirmed) return;
 
   const removals = [remove(ref(database, `boards/${boardId}/participants/${pid}`))];
@@ -304,19 +422,19 @@ async function removeParticipant(pid, participantName) {
 }
 
 function exportCsv() {
-  const rows = [["Tile #", "Tile", "Details", "Points", "Participant", "Color", "Claimed At"]];
+  const rows = [["Tile #", "Tile", "Details", "Points", "Participant", "Color", "Claimed At", "Image Link"]];
 
   BOARD_ITEMS.forEach((item, index) => {
     const claims = getClaimsForCell(cellId(index));
     const points = getPointValue(item);
     if (!claims.length) {
-      rows.push([index + 1, item.title, item.detail, points, "", "", ""]);
+      rows.push([index + 1, item.title, item.detail, points, "", "", "", ""]);
       return;
     }
 
     claims.forEach(claim => {
       const date = claim.claimedAt ? new Date(Number(claim.claimedAt)).toISOString() : "";
-      rows.push([index + 1, item.title, item.detail, points, claim.name, claim.color, date]);
+      rows.push([index + 1, item.title, item.detail, points, claim.name, claim.color, date, claim.proofUrl || ""]);
     });
   });
 
