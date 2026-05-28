@@ -617,3 +617,43 @@ button:hover {
     min-height: 235px;
   }
 }
+
+
+/* Proof links v2 visibility hardening */
+.tile {
+  min-height: 260px !important;
+  overflow: hidden;
+  justify-content: flex-start;
+}
+
+.tile-click-target {
+  flex: 0 0 auto !important;
+  min-height: 98px !important;
+}
+
+.claims {
+  min-height: 20px;
+}
+
+.proof-area {
+  display: grid !important;
+  margin-top: auto !important;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.proof-entry {
+  display: grid !important;
+}
+
+.proof-input,
+.proof-save-btn,
+.copy-proof-btn {
+  display: inline-block !important;
+}
+
+@media (max-width: 980px) {
+  .tile {
+    min-height: 275px !important;
+  }
+}
