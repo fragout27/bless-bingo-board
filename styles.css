@@ -426,3 +426,73 @@ button:hover {
     scroll-snap-align: start;
   }
 }
+
+.score-card {
+  min-width: 165px;
+  padding: 12px 14px;
+  border: 1px solid rgba(246, 196, 83, 0.38);
+  border-radius: 18px;
+  background: rgba(246, 196, 83, 0.1);
+  box-shadow: var(--shadow);
+  text-align: right;
+}
+
+.score-label,
+.score-subtext {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.score-card strong {
+  display: block;
+  margin: 2px 0;
+  color: var(--accent);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.tile-points {
+  position: absolute;
+  left: 8px;
+  top: 7px;
+  z-index: 4;
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: #09111a;
+  background: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.participant-pill {
+  justify-content: space-between;
+}
+
+.participant-name-wrap {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.participant-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.participant-score {
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.tile-content {
+  display: block;
+  padding-top: 20px;
+}
