@@ -26,7 +26,6 @@ const elements = {
   clearMine: document.querySelector("#clearMineBtn"),
   participants: document.querySelector("#participantsList"),
   exportBtn: document.querySelector("#exportBtn"),
-  resetBoard: document.querySelector("#resetBoardBtn"),
   copyLink: document.querySelector("#copyLinkBtn")
 };
 
@@ -304,23 +303,6 @@ async function removeParticipant(pid, participantName) {
   await Promise.all(removals);
 }
 
-async function resetEntireBoard() {
-  if (!database) return;
-  const phrase = prompt("Type RESET to remove every mark from the board.");
-  if (phrase !== "RESET") return;
-
-  const removals = [];
-  BOARD_ITEMS.forEach((_item, index) => {
-    const id = cellId(index);
-    const claims = boardState.cells?.[id]?.claims ?? {};
-    Object.keys(claims).forEach(pid => {
-      removals.push(remove(ref(database, `boards/${boardId}/cells/${id}/claims/${pid}`)));
-    });
-  });
-
-  await Promise.all(removals);
-}
-
 function exportCsv() {
   const rows = [["Tile #", "Tile", "Details", "Points", "Participant", "Color", "Claimed At"]];
 
@@ -373,6 +355,5 @@ elements.name.addEventListener("keydown", event => {
 });
 elements.color.addEventListener("input", () => writeProfile({ name: elements.name.value, color: elements.color.value }));
 elements.clearMine.addEventListener("click", clearMyMarks);
-elements.resetBoard.addEventListener("click", resetEntireBoard);
 elements.exportBtn.addEventListener("click", exportCsv);
 elements.copyLink.addEventListener("click", copyShareLink);
