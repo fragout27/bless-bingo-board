@@ -496,3 +496,29 @@ button:hover {
   display: block;
   padding-top: 20px;
 }
+
+.participant-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.participant-remove-btn {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(239, 68, 68, 0.65);
+  border-radius: 999px;
+  padding: 0;
+  color: #fff;
+  background: rgba(239, 68, 68, 0.75);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.participant-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.95);
+}
