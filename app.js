@@ -1,0 +1,299 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getDatabase,
+  ref,
+  onValue,
+  set,
+  remove,
+  serverTimestamp,
+  get
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const BOARD_ITEMS = window.BINGO_ITEMS ?? [];
+const PRESET_COLORS = ["#ef4444", "#f97316", "#facc15", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#ffffff", "#94a3b8"];
+const DEFAULT_COLOR = "#3b82f6";
+
+const elements = {
+  setupWarning: document.querySelector("#setupWarning"),
+  board: document.querySelector("#bingoBoard"),
+  status: document.querySelector("#boardStatus"),
+  name: document.querySelector("#playerName"),
+  color: document.querySelector("#playerColor"),
+  presetColors: document.querySelector("#presetColors"),
+  saveProfile: document.querySelector("#saveProfileBtn"),
+  clearMine: document.querySelector("#clearMineBtn"),
+  participants: document.querySelector("#participantsList"),
+  exportBtn: document.querySelector("#exportBtn"),
+  resetBoard: document.querySelector("#resetBoardBtn"),
+  copyLink: document.querySelector("#copyLinkBtn")
+};
+
+const boardId = new URLSearchParams(window.location.search).get("board") || "main";
+const participantId = getOrCreateParticipantId();
+let database = null;
+let boardState = { participants: {}, cells: {} };
+let profile = readProfile();
+
+elements.name.value = profile.name;
+elements.color.value = profile.color;
+
+renderPresetColors();
+renderBoard();
+bootstrap();
+
+function bootstrap() {
+  if (!isFirebaseConfigured()) {
+    elements.setupWarning.classList.remove("hidden");
+    elements.status.textContent = "Board preview only. Firebase config is missing.";
+    return;
+  }
+
+  const app = initializeApp(window.firebaseConfig);
+  database = getDatabase(app);
+  saveProfileToFirebase();
+
+  onValue(ref(database, `boards/${boardId}`), snapshot => {
+    boardState = snapshot.val() ?? { participants: {}, cells: {} };
+    renderParticipants();
+    renderBoard();
+  });
+}
+
+function isFirebaseConfigured() {
+  const cfg = window.firebaseConfig;
+  return Boolean(
+    cfg &&
+    cfg.apiKey &&
+    cfg.databaseURL &&
+    !String(cfg.apiKey).includes("PASTE_") &&
+    !String(cfg.databaseURL).includes("PASTE_")
+  );
+}
+
+function getOrCreateParticipantId() {
+  const existing = localStorage.getItem("osrsBingoParticipantId");
+  if (existing) return existing;
+  const id = crypto.randomUUID();
+  localStorage.setItem("osrsBingoParticipantId", id);
+  return id;
+}
+
+function readProfile() {
+  const saved = JSON.parse(localStorage.getItem("osrsBingoProfile") || "{}");
+  return {
+    name: typeof saved.name === "string" ? saved.name : "",
+    color: typeof saved.color === "string" ? saved.color : DEFAULT_COLOR
+  };
+}
+
+function writeProfile(nextProfile) {
+  profile = {
+    name: String(nextProfile.name || "").trim().slice(0, 30),
+    color: isHexColor(nextProfile.color) ? nextProfile.color : DEFAULT_COLOR
+  };
+  localStorage.setItem("osrsBingoProfile", JSON.stringify(profile));
+}
+
+function isHexColor(value) {
+  return /^#[0-9a-fA-F]{6}$/.test(value);
+}
+
+function cellId(index) {
+  return `cell_${String(index + 1).padStart(2, "0")}`;
+}
+
+function getClaimsForCell(id) {
+  const claimsObject = boardState.cells?.[id]?.claims ?? {};
+  return Object.entries(claimsObject)
+    .map(([pid, claim]) => {
+      const participant = boardState.participants?.[pid] ?? {};
+      return {
+        participantId: pid,
+        name: participant.name || "Unknown",
+        color: participant.color || DEFAULT_COLOR,
+        claimedAt: claim?.claimedAt || 0
+      };
+    })
+    .sort((a, b) => Number(a.claimedAt || 0) - Number(b.claimedAt || 0));
+}
+
+function renderBoard() {
+  const totalClaims = BOARD_ITEMS.reduce((count, _item, index) => count + getClaimsForCell(cellId(index)).length, 0);
+  const claimedTiles = BOARD_ITEMS.filter((_item, index) => getClaimsForCell(cellId(index)).length > 0).length;
+  elements.status.textContent = `${claimedTiles} of ${BOARD_ITEMS.length} tiles claimed. ${totalClaims} total player marks.`;
+
+  elements.board.innerHTML = BOARD_ITEMS.map((item, index) => {
+    const id = cellId(index);
+    const claims = getClaimsForCell(id);
+    const mine = claims.some(claim => claim.participantId === participantId);
+    const crossLines = claims.map((claim, claimIndex) => {
+      const rotation = claimIndex % 2 === 0 ? "-32deg" : "32deg";
+      const offset = ((claimIndex % 5) - 2) * 10;
+      return `<span class="cross-line" style="--claim-color:${escapeHtml(claim.color)}; --rotation:${rotation}; --offset:${offset}px"></span>`;
+    }).join("");
+    const claimChips = claims.map(claim => `<span class="claim-chip" style="--claim-color:${escapeHtml(claim.color)}" title="${escapeHtml(claim.name)}">${escapeHtml(claim.name)}</span>`).join("");
+
+    return `
+      <button class="tile ${claims.length ? "claimed" : ""} ${mine ? "mine" : ""}" type="button" data-cell-id="${id}" data-index="${index}">
+        <span class="tile-number">${index + 1}</span>
+        ${crossLines}
+        <span>
+          <span class="tile-title">${escapeHtml(item.title)}</span>
+          <span class="tile-detail">${escapeHtml(item.detail)}</span>
+        </span>
+        <span class="claims">${claimChips}</span>
+      </button>
+    `;
+  }).join("");
+
+  document.querySelectorAll(".tile").forEach(tile => {
+    tile.addEventListener("click", () => toggleClaim(tile.dataset.cellId));
+  });
+}
+
+function renderParticipants() {
+  const participants = Object.entries(boardState.participants ?? {})
+    .map(([pid, participant]) => ({ pid, ...participant }))
+    .filter(participant => participant.name)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+  if (!participants.length) {
+    elements.participants.className = "participants-list empty-state";
+    elements.participants.textContent = "No participants yet.";
+    return;
+  }
+
+  elements.participants.className = "participants-list";
+  elements.participants.innerHTML = participants.map(participant => `
+    <div class="participant-pill">
+      <span class="participant-dot" style="--participant-color:${escapeHtml(participant.color || DEFAULT_COLOR)}"></span>
+      <span>${escapeHtml(participant.name)}</span>
+    </div>
+  `).join("");
+}
+
+function renderPresetColors() {
+  elements.presetColors.innerHTML = PRESET_COLORS.map(color => `
+    <button class="color-swatch" type="button" style="background:${color}" aria-label="Use ${color}" data-color="${color}"></button>
+  `).join("");
+
+  document.querySelectorAll(".color-swatch").forEach(button => {
+    button.addEventListener("click", () => {
+      elements.color.value = button.dataset.color;
+      saveProfileFromInputs();
+    });
+  });
+}
+
+async function saveProfileFromInputs() {
+  writeProfile({ name: elements.name.value, color: elements.color.value });
+  if (!profile.name) {
+    alert("Type your display name first.");
+    elements.name.focus();
+    return;
+  }
+  await saveProfileToFirebase();
+}
+
+async function saveProfileToFirebase() {
+  if (!database || !profile.name) return;
+  await set(ref(database, `boards/${boardId}/participants/${participantId}`), {
+    name: profile.name,
+    color: profile.color,
+    updatedAt: serverTimestamp()
+  });
+}
+
+async function toggleClaim(id) {
+  if (!database) {
+    alert("Firebase is not configured yet. Finish config.js first.");
+    return;
+  }
+
+  writeProfile({ name: elements.name.value, color: elements.color.value });
+  if (!profile.name) {
+    alert("Type and save your display name first.");
+    elements.name.focus();
+    return;
+  }
+
+  await saveProfileToFirebase();
+
+  const myClaimRef = ref(database, `boards/${boardId}/cells/${id}/claims/${participantId}`);
+  const snapshot = await get(myClaimRef);
+  if (snapshot.exists()) {
+    await remove(myClaimRef);
+  } else {
+    await set(myClaimRef, { claimedAt: serverTimestamp() });
+  }
+}
+
+async function clearMyMarks() {
+  if (!database) return;
+  if (!confirm("Remove all of your marks from this board?")) return;
+
+  const removals = BOARD_ITEMS.map((_item, index) => remove(ref(database, `boards/${boardId}/cells/${cellId(index)}/claims/${participantId}`)));
+  await Promise.all(removals);
+}
+
+async function resetEntireBoard() {
+  if (!database) return;
+  const phrase = prompt("Type RESET to remove every mark from the board.");
+  if (phrase !== "RESET") return;
+  await remove(ref(database, `boards/${boardId}/cells`));
+}
+
+function exportCsv() {
+  const rows = [["Tile #", "Tile", "Details", "Participant", "Color", "Claimed At"]];
+
+  BOARD_ITEMS.forEach((item, index) => {
+    const claims = getClaimsForCell(cellId(index));
+    if (!claims.length) {
+      rows.push([index + 1, item.title, item.detail, "", "", ""]);
+      return;
+    }
+
+    claims.forEach(claim => {
+      const date = claim.claimedAt ? new Date(Number(claim.claimedAt)).toISOString() : "";
+      rows.push([index + 1, item.title, item.detail, claim.name, claim.color, date]);
+    });
+  });
+
+  const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `osrs-bingo-${boardId}-claims.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function copyShareLink() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("board", boardId);
+  await navigator.clipboard.writeText(url.toString());
+  elements.copyLink.textContent = "Copied";
+  setTimeout(() => { elements.copyLink.textContent = "Copy share link"; }, 1200);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+elements.saveProfile.addEventListener("click", saveProfileFromInputs);
+elements.name.addEventListener("keydown", event => {
+  if (event.key === "Enter") saveProfileFromInputs();
+});
+elements.color.addEventListener("input", () => writeProfile({ name: elements.name.value, color: elements.color.value }));
+elements.clearMine.addEventListener("click", clearMyMarks);
+elements.resetBoard.addEventListener("click", resetEntireBoard);
+elements.exportBtn.addEventListener("click", exportCsv);
+elements.copyLink.addEventListener("click", copyShareLink);

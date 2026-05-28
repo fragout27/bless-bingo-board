@@ -1,0 +1,25 @@
+{
+  "rules": {
+    "boards": {
+      "$boardId": {
+        ".read": true,
+        "participants": {
+          "$participantId": {
+            ".write": true,
+            ".validate": "newData.exists() ? newData.hasChildren(['name','color','updatedAt']) && newData.child('name').isString() && newData.child('name').val().length <= 30 && newData.child('color').isString() && newData.child('color').val().matches(/^#[0-9a-fA-F]{6}$/) : true"
+          }
+        },
+        "cells": {
+          "$cellId": {
+            "claims": {
+              "$participantId": {
+                ".write": true,
+                ".validate": "newData.exists() ? newData.hasChildren(['claimedAt']) : true"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

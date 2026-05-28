@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OSRS Realtime Bingo Board</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">OSRS Clan Bingo</p>
+          <h1>Realtime Bingo Board</h1>
+          <p class="subtext">Pick your name and color, then click any tile to cross it off. Everyone with the same link sees updates live.</p>
+        </div>
+        <div class="board-link-card">
+          <span>Board link</span>
+          <button id="copyLinkBtn" type="button">Copy share link</button>
+        </div>
+      </header>
+
+      <section id="setupWarning" class="setup-warning hidden">
+        <strong>Firebase is not configured yet.</strong>
+        Open <code>config.js</code>, paste your Firebase web config, then refresh this page.
+      </section>
+
+      <main class="layout">
+        <aside class="panel controls-panel">
+          <h2>Player</h2>
+          <label class="field-label" for="playerName">Display name</label>
+          <input id="playerName" maxlength="30" autocomplete="nickname" placeholder="Atey" />
+
+          <label class="field-label" for="playerColor">Cross-off color</label>
+          <div class="color-row">
+            <input id="playerColor" type="color" value="#3b82f6" />
+            <div id="presetColors" class="preset-colors" aria-label="Preset colors"></div>
+          </div>
+
+          <button id="saveProfileBtn" class="primary-btn" type="button">Save player</button>
+          <button id="clearMineBtn" class="secondary-btn" type="button">Remove my marks</button>
+
+          <div class="divider"></div>
+
+          <h2>Participants</h2>
+          <div id="participantsList" class="participants-list empty-state">No participants yet.</div>
+
+          <div class="divider"></div>
+
+          <h2>Board tools</h2>
+          <button id="exportBtn" class="secondary-btn" type="button">Export claims CSV</button>
+          <button id="resetBoardBtn" class="danger-btn" type="button">Reset entire board</button>
+          <p class="fine-print">No login is used. Anyone with the link can mark tiles, so only share it with people you trust.</p>
+        </aside>
+
+        <section class="board-section">
+          <div class="board-meta">
+            <div>
+              <h2>7x7 Board</h2>
+              <p id="boardStatus">Loading board...</p>
+            </div>
+            <div class="legend">
+              <span class="legend-box"></span>
+              <span>Colored lines show claimed tiles.</span>
+            </div>
+          </div>
+          <div id="bingoBoard" class="bingo-board" aria-live="polite"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="board.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
