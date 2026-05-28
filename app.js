@@ -203,9 +203,25 @@ function renderParticipants() {
         <span class="participant-dot" style="--participant-color:${escapeHtml(participant.color || DEFAULT_COLOR)}"></span>
         <span class="participant-name">${escapeHtml(participant.name)}</span>
       </span>
-      <span class="participant-score">${participant.points} pts</span>
+      <span class="participant-actions">
+        <span class="participant-score">${participant.points} pts</span>
+        <button
+          class="participant-remove-btn"
+          type="button"
+          title="Remove ${escapeHtml(participant.name)}"
+          aria-label="Remove ${escapeHtml(participant.name)}"
+          data-participant-id="${escapeHtml(participant.pid)}"
+          data-participant-name="${escapeHtml(participant.name)}"
+        >×</button>
+      </span>
     </div>
   `).join("");
+
+  elements.participants.querySelectorAll(".participant-remove-btn").forEach(button => {
+    button.addEventListener("click", () => {
+      removeParticipant(button.dataset.participantId, button.dataset.participantName);
+    });
+  });
 }
 
 function renderPresetColors() {
@@ -269,6 +285,22 @@ async function clearMyMarks() {
   if (!confirm("Remove all of your marks from this board?")) return;
 
   const removals = BOARD_ITEMS.map((_item, index) => remove(ref(database, `boards/${boardId}/cells/${cellId(index)}/claims/${participantId}`)));
+  await Promise.all(removals);
+}
+
+async function removeParticipant(pid, participantName) {
+  if (!database || !pid) return;
+
+  const label = participantName || "this participant";
+  const confirmed = confirm(`Remove ${label} from this board and delete all of their marks?`);
+  if (!confirmed) return;
+
+  const removals = [remove(ref(database, `boards/${boardId}/participants/${pid}`))];
+
+  BOARD_ITEMS.forEach((_item, index) => {
+    removals.push(remove(ref(database, `boards/${boardId}/cells/${cellId(index)}/claims/${pid}`)));
+  });
+
   await Promise.all(removals);
 }
 
