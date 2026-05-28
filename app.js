@@ -17,6 +17,8 @@ const elements = {
   setupWarning: document.querySelector("#setupWarning"),
   board: document.querySelector("#bingoBoard"),
   status: document.querySelector("#boardStatus"),
+  totalPoints: document.querySelector("#totalPoints"),
+  possiblePoints: document.querySelector("#possiblePoints"),
   name: document.querySelector("#playerName"),
   color: document.querySelector("#playerColor"),
   presetColors: document.querySelector("#presetColors"),
@@ -102,6 +104,30 @@ function cellId(index) {
   return `cell_${String(index + 1).padStart(2, "0")}`;
 }
 
+function getPointValue(item) {
+  const points = Number(item?.points ?? 0);
+  return Number.isFinite(points) && points > 0 ? points : 0;
+}
+
+function getTotalPossiblePoints() {
+  return BOARD_ITEMS.reduce((sum, item) => sum + getPointValue(item), 0);
+}
+
+function getBoardPoints() {
+  return BOARD_ITEMS.reduce((sum, item, index) => {
+    const claims = getClaimsForCell(cellId(index));
+    return claims.length > 0 ? sum + getPointValue(item) : sum;
+  }, 0);
+}
+
+function getParticipantPoints(pid) {
+  return BOARD_ITEMS.reduce((sum, item, index) => {
+    const claims = getClaimsForCell(cellId(index));
+    const participantClaimedTile = claims.some(claim => claim.participantId === pid);
+    return participantClaimedTile ? sum + getPointValue(item) : sum;
+  }, 0);
+}
+
 function getClaimsForCell(id) {
   const claimsObject = boardState.cells?.[id]?.claims ?? {};
   return Object.entries(claimsObject)
@@ -120,12 +146,18 @@ function getClaimsForCell(id) {
 function renderBoard() {
   const totalClaims = BOARD_ITEMS.reduce((count, _item, index) => count + getClaimsForCell(cellId(index)).length, 0);
   const claimedTiles = BOARD_ITEMS.filter((_item, index) => getClaimsForCell(cellId(index)).length > 0).length;
-  elements.status.textContent = `${claimedTiles} of ${BOARD_ITEMS.length} tiles claimed. ${totalClaims} total player marks.`;
+  const boardPoints = getBoardPoints();
+  const possiblePoints = getTotalPossiblePoints();
+
+  elements.totalPoints.textContent = String(boardPoints);
+  elements.possiblePoints.textContent = `of ${possiblePoints} possible`;
+  elements.status.textContent = `${claimedTiles} of ${BOARD_ITEMS.length} tiles claimed. ${boardPoints} points. ${totalClaims} total player marks.`;
 
   elements.board.innerHTML = BOARD_ITEMS.map((item, index) => {
     const id = cellId(index);
     const claims = getClaimsForCell(id);
     const mine = claims.some(claim => claim.participantId === participantId);
+    const points = getPointValue(item);
     const crossLines = claims.map((claim, claimIndex) => {
       const rotation = claimIndex % 2 === 0 ? "-32deg" : "32deg";
       const offset = ((claimIndex % 5) - 2) * 10;
@@ -135,9 +167,10 @@ function renderBoard() {
 
     return `
       <button class="tile ${claims.length ? "claimed" : ""} ${mine ? "mine" : ""}" type="button" data-cell-id="${id}" data-index="${index}">
+        <span class="tile-points">${points} pts</span>
         <span class="tile-number">${index + 1}</span>
         ${crossLines}
-        <span>
+        <span class="tile-content">
           <span class="tile-title">${escapeHtml(item.title)}</span>
           <span class="tile-detail">${escapeHtml(item.detail)}</span>
         </span>
@@ -153,7 +186,7 @@ function renderBoard() {
 
 function renderParticipants() {
   const participants = Object.entries(boardState.participants ?? {})
-    .map(([pid, participant]) => ({ pid, ...participant }))
+    .map(([pid, participant]) => ({ pid, ...participant, points: getParticipantPoints(pid) }))
     .filter(participant => participant.name)
     .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
@@ -166,8 +199,11 @@ function renderParticipants() {
   elements.participants.className = "participants-list";
   elements.participants.innerHTML = participants.map(participant => `
     <div class="participant-pill">
-      <span class="participant-dot" style="--participant-color:${escapeHtml(participant.color || DEFAULT_COLOR)}"></span>
-      <span>${escapeHtml(participant.name)}</span>
+      <span class="participant-name-wrap">
+        <span class="participant-dot" style="--participant-color:${escapeHtml(participant.color || DEFAULT_COLOR)}"></span>
+        <span class="participant-name">${escapeHtml(participant.name)}</span>
+      </span>
+      <span class="participant-score">${participant.points} pts</span>
     </div>
   `).join("");
 }
@@ -240,22 +276,33 @@ async function resetEntireBoard() {
   if (!database) return;
   const phrase = prompt("Type RESET to remove every mark from the board.");
   if (phrase !== "RESET") return;
-  await remove(ref(database, `boards/${boardId}/cells`));
+
+  const removals = [];
+  BOARD_ITEMS.forEach((_item, index) => {
+    const id = cellId(index);
+    const claims = boardState.cells?.[id]?.claims ?? {};
+    Object.keys(claims).forEach(pid => {
+      removals.push(remove(ref(database, `boards/${boardId}/cells/${id}/claims/${pid}`)));
+    });
+  });
+
+  await Promise.all(removals);
 }
 
 function exportCsv() {
-  const rows = [["Tile #", "Tile", "Details", "Participant", "Color", "Claimed At"]];
+  const rows = [["Tile #", "Tile", "Details", "Points", "Participant", "Color", "Claimed At"]];
 
   BOARD_ITEMS.forEach((item, index) => {
     const claims = getClaimsForCell(cellId(index));
+    const points = getPointValue(item);
     if (!claims.length) {
-      rows.push([index + 1, item.title, item.detail, "", "", ""]);
+      rows.push([index + 1, item.title, item.detail, points, "", "", ""]);
       return;
     }
 
     claims.forEach(claim => {
       const date = claim.claimedAt ? new Date(Number(claim.claimedAt)).toISOString() : "";
-      rows.push([index + 1, item.title, item.detail, claim.name, claim.color, date]);
+      rows.push([index + 1, item.title, item.detail, points, claim.name, claim.color, date]);
     });
   });
 
