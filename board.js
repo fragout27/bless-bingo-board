@@ -1,6 +1,6 @@
 window.BINGO_ITEMS = [
   // First row
-  { title: "Zulrah Unique", detail: "Tanz fang, Magic fang, Serp", points: 5, imageUrl: "https://oldschool.runescape.wiki/images/Tanzanite_fang.png?57bdc" },
+  { title: "Zulrah Unique", detail: "Tanz fang, Magic fang, Serp", points: 5, imageUrl: "https://prnt.sc/UoZk6U8iY_7T" },
   { title: "Any Justi", detail: "Justi pieces", points: 10 },
   { title: "Huey Unique", detail: "Wand, earth tome, hides", points: 5 },
   { title: "Any Ancestral", detail: "Ancestral", points: 10 },
