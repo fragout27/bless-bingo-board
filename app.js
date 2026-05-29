@@ -13,6 +13,7 @@ const BOARD_ITEMS = window.BINGO_ITEMS ?? [];
 const PRESET_COLORS = ["#ef4444", "#f97316", "#facc15", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#ffffff", "#94a3b8"];
 const DEFAULT_COLOR = "#3b82f6";
 const MAX_PROOF_URL_LENGTH = 500;
+const MAX_ITEM_IMAGE_URL_LENGTH = 500;
 
 const elements = {
   setupWarning: document.querySelector("#setupWarning"),
@@ -175,9 +176,13 @@ function renderBoard() {
       .join("");
     const myProofUrl = myClaim?.proofUrl || "";
     const proofHint = mine ? "Paste image link" : "Claim first or paste link";
+    const itemImageUrl = normalizeItemImageUrl(item?.imageUrl || item?.image || "");
+    const itemImageMarkup = itemImageUrl
+      ? `<span class="tile-item-image-wrap"><img class="tile-item-image" src="${escapeHtml(itemImageUrl)}" alt="${escapeHtml(item?.imageAlt || item.title || "Bingo tile item image")}" loading="lazy" decoding="async" onerror="this.closest('.tile-item-image-wrap').classList.add('hidden')" /></span>`
+      : "";
 
     return `
-      <article class="tile ${claims.length ? "claimed" : ""} ${mine ? "mine" : ""}" data-cell-id="${id}" data-index="${index}">
+      <article class="tile ${claims.length ? "claimed" : ""} ${mine ? "mine" : ""} ${itemImageUrl ? "has-item-image" : ""}" data-cell-id="${id}" data-index="${index}">
         <span class="tile-points">${points} pts</span>
         <span class="tile-number">${index + 1}</span>
         ${crossLines}
@@ -185,6 +190,7 @@ function renderBoard() {
           <span class="tile-content">
             <span class="tile-title">${escapeHtml(item.title)}</span>
             <span class="tile-detail">${escapeHtml(item.detail)}</span>
+            ${itemImageMarkup}
           </span>
         </button>
         <span class="claims">${claimChips}</span>
@@ -358,6 +364,22 @@ async function saveProofLink(id, rawUrl) {
     await set(myClaimRef, {
       claimedAt: existingClaim.claimedAt || serverTimestamp()
     });
+  }
+}
+
+function normalizeItemImageUrl(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+
+  try {
+    const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    const url = new URL(candidate);
+
+    if (!["http:", "https:"].includes(url.protocol)) return "";
+    const normalized = url.toString();
+    return normalized.length <= MAX_ITEM_IMAGE_URL_LENGTH ? normalized : "";
+  } catch (_error) {
+    return "";
   }
 }
 
