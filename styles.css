@@ -918,3 +918,119 @@ button:hover {
     min-height: 52px !important;
   }
 }
+
+
+/* Tile item image update v1
+   Add imageUrl: "https://..." to any item in board.js to show a small item image. */
+.tile-item-image-wrap {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 5px;
+  pointer-events: none;
+}
+
+.tile-item-image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 58px;
+  max-height: 46px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.28));
+}
+
+@media (min-width: 761px) {
+  .tile {
+    height: 174px !important;
+    min-height: 174px !important;
+    padding: 7px !important;
+  }
+
+  .tile-click-target {
+    min-height: 96px !important;
+    flex: 1 1 auto !important;
+    overflow: hidden;
+  }
+
+  .tile-content {
+    display: flex !important;
+    flex-direction: column;
+    height: 100%;
+    padding-top: 16px;
+  }
+
+  .tile-title {
+    font-size: clamp(0.72rem, 0.72vw, 0.86rem) !important;
+    line-height: 1 !important;
+  }
+
+  .tile-detail {
+    font-size: 0.57rem !important;
+    line-height: 1.08 !important;
+    margin-top: 3px !important;
+  }
+
+  .tile.has-item-image .tile-item-image-wrap {
+    margin-top: auto;
+    padding-top: 4px;
+  }
+
+  .tile:not(.has-item-image) .tile-click-target {
+    min-height: 70px !important;
+  }
+
+  .tile:not(.has-item-image) .tile-content {
+    height: auto;
+  }
+
+  .proof-area {
+    flex: 0 0 auto;
+    margin-top: 4px !important;
+    padding-top: 5px !important;
+  }
+
+  .proof-input {
+    height: 23px !important;
+    padding: 3px 5px !important;
+    font-size: 0.55rem !important;
+  }
+
+  .proof-save-btn,
+  .copy-proof-btn {
+    min-height: 23px !important;
+    padding: 3px 6px !important;
+    font-size: 0.55rem !important;
+  }
+}
+
+@media (min-width: 1400px) {
+  .tile {
+    height: 166px !important;
+    min-height: 166px !important;
+  }
+
+  .tile-click-target {
+    min-height: 90px !important;
+  }
+
+  .tile-item-image {
+    max-width: 54px;
+    max-height: 42px;
+  }
+}
+
+@media (max-width: 760px) {
+  .tile-item-image-wrap {
+    min-height: 48px;
+  }
+
+  .tile-item-image {
+    max-width: 70px;
+    max-height: 56px;
+  }
+}
