@@ -97,7 +97,7 @@ h2 {
   display: grid;
   gap: 8px;
   padding: 14px;
-  border-radius: 18px;
+  border-radius: 14px;
   min-width: 210px;
 }
 
@@ -246,7 +246,7 @@ button:hover {
 
 .setup-warning {
   padding: 14px 16px;
-  border-radius: 18px;
+  border-radius: 14px;
   margin-bottom: 18px;
   border-color: rgba(246, 196, 83, 0.44);
 }
@@ -295,19 +295,19 @@ button:hover {
 .bingo-board {
   display: grid;
   grid-template-columns: repeat(7, minmax(115px, 1fr));
-  gap: 9px;
+  gap: 6px;
 }
 
 .tile {
-  min-height: 150px;
+  min-height: 132px;
   position: relative;
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 14px;
   background: linear-gradient(180deg, rgba(23, 37, 54, 0.96), rgba(13, 23, 33, 0.96));
   color: var(--text);
   text-align: left;
-  padding: 12px;
+  padding: 9px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -328,8 +328,8 @@ button:hover {
   z-index: 2;
   font-weight: 900;
   letter-spacing: -0.02em;
-  line-height: 1.08;
-  font-size: clamp(0.88rem, 1vw, 1.08rem);
+  line-height: 1.02;
+  font-size: clamp(0.78rem, 0.9vw, 0.95rem);
 }
 
 .tile-detail {
@@ -337,18 +337,18 @@ button:hover {
   position: relative;
   z-index: 2;
   color: var(--muted);
-  font-size: 0.73rem;
-  line-height: 1.25;
-  margin-top: 7px;
+  font-size: 0.66rem;
+  line-height: 1.15;
+  margin-top: 4px;
 }
 
 .claims {
   position: relative;
   z-index: 3;
   display: flex;
-  gap: 5px;
+  gap: 4px;
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: 4px;
 }
 
 .claim-chip {
@@ -357,8 +357,8 @@ button:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   border-radius: 999px;
-  padding: 3px 7px;
-  font-size: 0.68rem;
+  padding: 2px 6px;
+  font-size: 0.64rem;
   font-weight: 800;
   color: #061018;
   background: var(--claim-color);
@@ -370,7 +370,7 @@ button:hover {
   left: -28%;
   top: calc(50% + var(--offset));
   width: 156%;
-  height: 8px;
+  height: 6px;
   border-radius: 999px;
   background: var(--claim-color);
   opacity: 0.72;
@@ -431,7 +431,7 @@ button:hover {
   min-width: 165px;
   padding: 12px 14px;
   border: 1px solid rgba(246, 196, 83, 0.38);
-  border-radius: 18px;
+  border-radius: 14px;
   background: rgba(246, 196, 83, 0.1);
   box-shadow: var(--shadow);
   text-align: right;
@@ -459,10 +459,10 @@ button:hover {
   top: 7px;
   z-index: 4;
   border-radius: 999px;
-  padding: 3px 8px;
+  padding: 3px 7px;
   color: #09111a;
   background: var(--accent);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   font-weight: 900;
   line-height: 1;
 }
@@ -494,7 +494,7 @@ button:hover {
 
 .tile-content {
   display: block;
-  padding-top: 20px;
+  padding-top: 17px;
 }
 
 .participant-actions {
@@ -526,15 +526,15 @@ button:hover {
 /* Proof link controls */
 .tile {
   min-height: 225px;
-  padding: 12px;
+  padding: 9px;
 }
 
 .tile-click-target {
   position: relative;
   z-index: 3;
   width: 100%;
-  min-height: 86px;
-  flex: 1 1 auto;
+  min-height: 66px;
+  flex: 0 1 auto;
   border: 0;
   padding: 0;
   color: inherit;
@@ -551,13 +551,13 @@ button:hover {
   position: relative;
   z-index: 5;
   display: grid;
-  gap: 5px;
+  gap: 4px;
   margin-top: 8px;
 }
 
 .proof-label {
   color: var(--muted);
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -566,19 +566,19 @@ button:hover {
 .proof-entry {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 5px;
+  gap: 4px;
 }
 
 .proof-input {
   width: 100%;
   min-width: 0;
   border: 1px solid var(--line);
-  border-radius: 9px;
-  padding: 6px 7px;
+  border-radius: 8px;
+  padding: 5px 6px;
   color: var(--text);
   background: rgba(255, 255, 255, 0.07);
   outline: none;
-  font-size: 0.68rem;
+  font-size: 0.64rem;
 }
 
 .proof-input:focus {
@@ -588,11 +588,11 @@ button:hover {
 .proof-save-btn,
 .copy-proof-btn {
   border: 1px solid rgba(246, 196, 83, 0.45);
-  border-radius: 9px;
-  padding: 6px 8px;
+  border-radius: 8px;
+  padding: 5px 7px;
   color: #09111a;
   background: var(--accent);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   font-weight: 900;
   line-height: 1;
 }
@@ -600,7 +600,7 @@ button:hover {
 .proof-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 4px;
 }
 
 .copy-proof-btn {
@@ -614,7 +614,7 @@ button:hover {
 
 @media (max-width: 760px) {
   .tile {
-    min-height: 235px;
+    min-height: 178px;
   }
 }
 
@@ -655,5 +655,91 @@ button:hover {
 @media (max-width: 980px) {
   .tile {
     min-height: 275px !important;
+  }
+}
+
+
+/* Compact tile layout update */
+.bingo-board {
+  gap: 6px;
+  grid-template-columns: repeat(7, minmax(105px, 1fr));
+}
+
+.tile {
+  min-height: 158px;
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.tile-click-target {
+  min-height: 64px;
+  flex: 0 1 auto;
+}
+
+.tile-title {
+  font-size: clamp(0.78rem, 0.9vw, 0.95rem);
+  line-height: 1.02;
+}
+
+.tile-detail {
+  font-size: 0.66rem;
+  line-height: 1.15;
+  margin-top: 4px;
+}
+
+.claims {
+  min-height: 17px;
+  margin-top: 3px;
+  gap: 4px;
+}
+
+.claim-chip {
+  padding: 2px 6px;
+  font-size: 0.62rem;
+}
+
+.proof-area {
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.proof-label {
+  font-size: 0.57rem;
+}
+
+.proof-entry {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+}
+
+.proof-input {
+  min-height: 28px;
+  padding: 5px 6px;
+  font-size: 0.62rem;
+}
+
+.proof-save-btn,
+.copy-proof-btn {
+  min-height: 28px;
+  padding: 5px 7px;
+  font-size: 0.62rem;
+}
+
+.tile-points {
+  left: 7px;
+  top: 6px;
+  padding: 2px 7px;
+  font-size: 0.62rem;
+}
+
+.tile-number {
+  right: 7px;
+  top: 6px;
+  font-size: 0.66rem;
+}
+
+@media (max-width: 760px) {
+  .tile {
+    min-height: 180px;
   }
 }
